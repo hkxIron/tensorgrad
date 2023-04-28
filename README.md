@@ -71,7 +71,7 @@ d = a * b + b ** 3
 d_dot = draw_dot_tensor(d)
 d_dot.view()
 ```
-![tensor graph](tensor_graph.gv.svg)
+![tensor graph](tensor_graph.svg)
 
 
 ### License
