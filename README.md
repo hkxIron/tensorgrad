@@ -73,6 +73,8 @@ d_dot.view()
 ```
 ![tensor graph](tensor_graph.svg)
 
+### Related work
+[micrograd](https://github.com/karpathy/micrograd)
 
 ### License
 
