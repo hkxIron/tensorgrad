@@ -100,12 +100,11 @@ def test_boardcast_multiply():
 
 def test_draw_dot():
    np.random.seed(0)
-   a = Tensor(np.random.random((2,3)))
-   b = Tensor(np.random.random((2,3)))
-   c = a + b
-   d = a * b + b ** 3
-   d_dot = draw_dot_tensor(d)
-   d_dot.view()
+   a = Tensor(np.random.random((2,2)))
+   b = Tensor(np.random.random((2,2)))
+   c = a + b**2
+   dot = draw_dot_tensor(c)
+   dot.view()
 
 
 def test_more_ops():
