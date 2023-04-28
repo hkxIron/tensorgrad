@@ -1,7 +1,7 @@
 
 # Tensorgrad
 
-A tiny Tensorgrad engine, which is inspired by [micrograd](https://github.com/karpathy/micrograd) of karpathy, which is great work for educational purposes.
+A tiny Tensorgrad engine, which is inspired by [micrograd](https://github.com/karpathy/micrograd) of karpathy, the latter is a great work for educational purposes.
 The only difference from micrograd of karpathy is that we support operate on tensor based on numpy.ndarray, which is more similar to PyTorch and much faster than micrograd,  while micrograd is only support scalar value.
 
 Implements backpropagation over a dynamically built DAG and a small neural networks library on top of it  
