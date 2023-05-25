@@ -59,6 +59,9 @@ class Functional:
 
     # y = softmax(x)
     # yi = exp(xi)/sum(exp(xj))
+    # A = max(xj)
+    # yi = exp(xi-A)/sum(exp(xj-A))
+    #
     # if i=j:
     #   dy_i/dx_i = y_i*(1-y_j) = y*i*(1-y_i) = yi-yi*yi
     # else:
@@ -74,6 +77,8 @@ class Functional:
             prob = exp_x / np.sum(exp_x, axis=axis, keepdims=keepdims)
             return prob
 
+        # x:[N, C]
+        # grad:[N,C]
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, batch_axis=0, **kwargs) -> np.ndarray:
             """
@@ -87,7 +92,7 @@ class Functional:
 
             根据公式有：
             y = softmax(x)
-            yi = exp(xi)/sum(exp(xj))
+            yi = exp(xi)/sum(exp(xk))
             if i=j:
               dy_i/dx_j = y_i*(1-y_j) = y*i*(1-y_i) = yi-yi*yi
             else:
@@ -192,6 +197,7 @@ class Functional:
             for i in range(batch_size): # 对于第i个样本
                 yi = np.diag(y[i])  # yi
                 yi_x_yj = np.outer(y[i], y[i])  # yi*yj
+                # 对于batch中的每个样本，softmax_grad均为[C,C]
                 softmax_grad = yi - yi_x_yj
                 # dy/dx => softmax_grad:[C, C]
                 # dL/dy => y_grad:[N,C]
@@ -202,6 +208,39 @@ class Functional:
             # batch_grads:[N,C]
             batch_grads = np.array(batch_grads, dtype=x.dtype)
             return batch_grads
+
+    # 可以提高数值稳定性
+    # p = log_softmax(x)
+    # pi = log(exp(xi)/sum(exp(xj)))
+    #
+    # 数值稳定性优化
+    # A = max(xj)
+    # pi = exp(xi-A)/sum(exp(xj-A))
+    #
+    # yi=log(pi) = log(exp(xi-A)) - log(sum(exp(xj-A)))
+    #  = (xi-A) - log(sum(exp(xj-A)))
+    #
+    class LogSoftmax(Func):
+        @staticmethod
+        def forward(x: np.ndarray, axis=1, **kwargs) -> np.ndarray:
+            # axis: which axis to calculate softmax
+            # inds = x.data.argmax(axis=axis)
+            keepdims = True
+            x_max = x.max(axis=axis, keepdims=keepdims)
+            x_minus = x - x_max
+            prob = x_minus - np.log(np.sum(np.exp(x_minus), axis=axis, keepdims=keepdims))
+            return prob
+
+        # y = log(softmax(x))
+        # dy/dx=1/softmax(x)* dsoftmax/dx
+        # 或者：
+        # A = max(xj)
+        # yi=log(pi) = log(exp(xi-A)) - log(sum(exp(xj-A)))
+        #  = (xi-A) - log(sum(exp(xj-A)))
+        @staticmethod
+        def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, batch_axis=0, **kwargs) -> np.ndarray:
+            # FIXME:梯度计算不正确
+            return Functional.Softmax.backward(x,y,y_grad, batch_axis)/Functional.Softmax.forward(x)
 
     # y = tanh(x)
     # dy/dx = 1-y*y

@@ -272,6 +272,16 @@ class Tensor:
 
         return y
 
+    def log_softmax(self, axis=None, batch_axis=0):
+        prob = F.LogSoftmax.forward(self.data, axis=axis)
+        y = Tensor(data=prob, _prev_nodes=(self,), _op='log_softmax')
+
+        def _backward_grad():
+            self.grad += F.LogSoftmax.backward(x=self.data, y=y.data, y_grad=y.grad, batch_axis=batch_axis)
+        y._backward_grad_fn = _backward_grad
+
+        return y
+
     def tanh(self):
         # y = tanh(x)
         # dy/dx = 1-y*y
