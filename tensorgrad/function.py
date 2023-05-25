@@ -78,6 +78,8 @@ class Functional:
             return prob
 
         # x:[N, C]
+        # y: [N,C]
+        # y_grad: [N,C]
         # grad:[N,C]
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, batch_axis=0, **kwargs) -> np.ndarray:
@@ -221,6 +223,7 @@ class Functional:
     #  = (xi-A) - log(sum(exp(xj-A)))
     #
     class LogSoftmax(Func):
+        # x:[N, C]
         @staticmethod
         def forward(x: np.ndarray, axis=1, **kwargs) -> np.ndarray:
             # axis: which axis to calculate softmax
@@ -231,16 +234,56 @@ class Functional:
             prob = x_minus - np.log(np.sum(np.exp(x_minus), axis=axis, keepdims=keepdims))
             return prob
 
-        # y = log(softmax(x))
-        # dy/dx=1/softmax(x)* dsoftmax/dx
-        # 或者：
-        # A = max(xj)
-        # yi=log(pi) = log(exp(xi-A)) - log(sum(exp(xj-A)))
-        #  = (xi-A) - log(sum(exp(xj-A)))
+        """
+         p = softmax(x)
+         y = log(softmax(x)) = log(p)
+         dy/dx=1/softmax(x)* dsoftmax/dx
+         或者：
+         A = max(xj)
+         yi=log(pi) = log(exp(xi-A)) - log(sum(exp(xj-A)))
+          = (xi-A) - log(sum(exp(xj-A)))
+        为了简化，将A去掉
+         yi = xi - log(sum(exp(xk))) 
+         令: B = log(sum(exp(xk))
+         dB/dxj = (1/(sum(exp(xk))))*exp(xj) = exp(xj)/(sum(exp(xk))) = pj
+         
+         if i=j:
+             dyi/dxj = 1 - pj
+         else:
+             dyi/dxj = - pj
+         即dy/dx = [1-p1, -p2, -p3
+                    -p1, 1-p2, -p3
+                    -p1,  -p2, 1-p3]    
+            
+        """
+        # x: [N,C]
+        # y: [N,C]
+        # y_grad: [N,C]
+        # x_grad:[N,C]
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, batch_axis=0, **kwargs) -> np.ndarray:
+            #return Functional.Softmax.backward(x,y,y_grad, batch_axis)/Functional.Softmax.forward(x,axis=1) # 计算有误
             # FIXME:梯度计算不正确
-            return Functional.Softmax.backward(x,y,y_grad, batch_axis)/Functional.Softmax.forward(x)
+            C = x.shape[-1]
+            batch_size = y.shape[batch_axis]
+            # 对于batch中的每个样本进行处理
+            batch_grads = []
+            # eye:[C,C]
+            eye = np.eye(C) # 对角线为1的矩阵
+            # p:[N,C]
+            p = Functional.Softmax.forward(x, axis=1)
+            for i in range(batch_size): # 对于第i个样本
+                # 对于batch中的每个样本，softmax_grad均为[C,C]
+                # dy/dx => delta:[C, C]
+                delta = eye - np.repeat(p[i].reshape(1,C), repeats=C, axis=batch_axis)
+                # dL/dy => y_grad:[N,C]
+                # y_grad[i]:[1,C]
+                # x_grad:[C,1]
+                x_grad = delta @ y_grad[i].T
+                batch_grads.append(x_grad)
+            # batch_grads:[N,C]
+            batch_grads = np.array(batch_grads, dtype=x.dtype)
+            return batch_grads
 
     # y = tanh(x)
     # dy/dx = 1-y*y

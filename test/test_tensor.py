@@ -325,10 +325,12 @@ def test_logsoftmax():
     dims = (1)
     # b = Function.Softmax().forward(a, axis=1)
     b = a.log_softmax(axis=1)
+    # y_g = np.array([[1.0, 1.0, 1.0],
+    #                 [1.0, 0.0, 0.0]], dtype=np.float64)
     y_g = np.array([[1.0, 1.0, 1.0],
-                    [1.0, 0.0, 0.0]], dtype=np.float64)
+                    [1.0, 1.0, 1.0]], dtype=np.float64)
     b.backward(grad=y_g)
-    a_g_tensor = a.grad
+    a_grad_tensor = a.grad
     b_d_tensor = b.data
     print("b tensor:", b.data)
 
@@ -340,16 +342,16 @@ def test_logsoftmax():
     print("b torch:", b.data)
     # b.backward(torch.ones_like(b))
     b.backward(torch.from_numpy(y_g))
-    a_g_torch = a.grad.numpy()
+    a_grad_torch = a.grad.numpy()
     b_d_torch = b.data.numpy()
 
-    print("a_g_tensor shape:", a_g_tensor.shape)
-    print("a_g_torch shape:", a_g_torch.shape)
+    print("a_grad_tensor shape:", a_grad_tensor.shape)
+    print("a_grad_torch shape:", a_grad_torch.shape)
 
-    print("a_g_tensor:", a_g_tensor)
-    print("a_g_torch:", a_g_torch)
+    print("a_grad_tensor:", a_grad_tensor)
+    print("a_grad_torch:", a_grad_torch)
     assert np.allclose(a=b_d_tensor, b=b_d_torch, atol=1e-6)
-    assert np.allclose(a=a_g_tensor, b=a_g_torch, atol=1e-6)
+    assert np.allclose(a=a_grad_tensor, b=a_grad_torch, atol=1e-6)
 
 
 class SoftMax():
