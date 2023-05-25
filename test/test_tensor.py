@@ -284,7 +284,7 @@ def test_sum():
 def test_softmax():
     np.random.seed(0)
     a = Tensor([[1.0, 1.2, 1.3],
-                [0.2, 0.6, 0.7]
+                [0.2, -0.6, 0.3]
                 ], name='x')
     # a = Tensor(np.random.normal(0, 1, (2,2)), name='x')
     dims = (1)
@@ -318,31 +318,32 @@ def test_softmax():
 
 def test_logsoftmax():
     np.random.seed(0)
-    a = Tensor([[1.0, 1.2, 1.3],
-                [0.2, 0.6, 0.7]
+    a = Tensor([[1.0, 1.2],
+                [0.2, 0.6]
                 ], name='x')
+    #a = Tensor(np.ones((2,3)))
     # a = Tensor(np.random.normal(0, 1, (2,2)), name='x')
     dims = (1)
     # b = Function.Softmax().forward(a, axis=1)
     b = a.log_softmax(axis=1)
     # y_g = np.array([[1.0, 1.0, 1.0],
     #                 [1.0, 0.0, 0.0]], dtype=np.float64)
-    y_g = np.array([[1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0]], dtype=np.float64)
+    y_g = np.array([[1.0, 1.0],
+                    [1.0, 0.0]], dtype=np.float64)
     b.backward(grad=y_g)
-    a_grad_tensor = a.grad
+    a_grad_tensor = a.grad.copy()
     b_d_tensor = b.data
     print("b tensor:", b.data)
 
     # torch
-    a = torch.from_numpy(a.data).double()
+    a = torch.from_numpy(a.data.copy()).double()
     a.requires_grad = True
     a.retain_grad()
     b = torch.log_softmax(a, dim=dims)
     print("b torch:", b.data)
     # b.backward(torch.ones_like(b))
     b.backward(torch.from_numpy(y_g))
-    a_grad_torch = a.grad.numpy()
+    a_grad_torch = a.grad.numpy().copy()
     b_d_torch = b.data.numpy()
 
     print("a_grad_tensor shape:", a_grad_tensor.shape)
@@ -494,9 +495,9 @@ def test_log():
 if __name__ == "__main__":
     test_logsoftmax()
     if False:
+        test_softmax()
         test_draw_dot()
         test_more_ops()
-        test_softmax()
         test_log()
         test_exp()
         test_abs()
