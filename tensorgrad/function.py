@@ -261,7 +261,6 @@ class Functional:
         # x_grad: [N,C]
         @staticmethod
         def backward(x: np.ndarray, y_grad: np.ndarray, batch_axis=0, softmax_axis=1, **kwargs) -> np.ndarray:
-            #return Functional.Softmax.backward(x,y,y_grad, batch_axis)/Functional.Softmax.forward(x,axis=1) # 计算有误
             batch_size = x.shape[batch_axis]
             C = x.shape[-1]
             # 对于batch中的每个样本进行处理
