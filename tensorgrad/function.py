@@ -251,19 +251,18 @@ class Functional:
              dyi/dxj = 1 - pj
          else:
              dyi/dxj = - pj
-         即dyi/dxj = [1-p1, -p2,  -p3
-                       -p1, 1-p2, -p3
-                       -p1,  -p2, 1-p3]    
+         即dyi/dxj = [1-p1,  -p1, -p1
+                       -p2, 1-p2, -p2
+                       -p3,  -p3, 1-p3]    
         """
         # x: [N,C]
         # y: [N,C]
         # y_grad: [N,C]
         # x_grad: [N,C]
         @staticmethod
-        def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, batch_axis=0, softmax_axis=1, **kwargs) -> np.ndarray:
+        def backward(x: np.ndarray, y_grad: np.ndarray, batch_axis=0, softmax_axis=1, **kwargs) -> np.ndarray:
             #return Functional.Softmax.backward(x,y,y_grad, batch_axis)/Functional.Softmax.forward(x,axis=1) # 计算有误
-            # FIXME:梯度计算不正确
-            batch_size = y.shape[batch_axis]
+            batch_size = x.shape[batch_axis]
             C = x.shape[-1]
             # 对于batch中的每个样本进行处理
             batch_grads = []
@@ -274,7 +273,7 @@ class Functional:
             for i in range(batch_size): # 对于第i个样本
                 # 对于batch中的每个样本，softmax_grad均为[C,C]
                 # dy/dx => delta:[C, C]
-                delta = eye - np.repeat(p[i].reshape(1, C), repeats=C, axis=batch_axis)
+                delta = eye - np.repeat(p[i].reshape(C,1), repeats=C, axis=softmax_axis)
                 # dL/dy => y_grad:[N,C]
                 # y_grad[i]:[1,C]
                 # x_grad:[C,1]

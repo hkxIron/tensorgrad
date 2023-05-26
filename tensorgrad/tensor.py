@@ -277,7 +277,7 @@ class Tensor:
         y = Tensor(data=prob, _prev_nodes=(self,), _op='log_softmax')
 
         def _backward_grad():
-            self.grad += F.LogSoftmax.backward(x=self.data, y=y.data, y_grad=y.grad, batch_axis=batch_axis, softmax_axis=axis)
+            self.grad += F.LogSoftmax.backward(x=self.data, y_grad=y.grad, batch_axis=batch_axis, softmax_axis=axis)
         y._backward_grad_fn = _backward_grad
 
         return y
