@@ -226,7 +226,8 @@ def test_mlp_sigmoid_with_cross_entropy_loss():
         #
         #print_debug_info()
 
-        # update (sgd)
+        # update (sgd), 更新模型参数, 类似于pytorch的optimizer.step()
+        # 学习率随着迭代次数增加而减小
         learning_rate = 1.0 - 0.9 * k / iter  # k 越大，lr越小
         #learning_rate = 1E-4
         for p in model.parameters():
@@ -474,10 +475,10 @@ def test_mlp_with_mse_loss():
 
 
 if __name__ == "__main__":
-    test_mlp_sigmoid_with_cross_entropy_loss()
+    test_demo_data_mlp()
 
     if False:
+        test_mlp_sigmoid_with_cross_entropy_loss()
         test_mlp_softmax_with_cross_entropy_loss()
         test_mlp_with_mse_loss()
         test_simple_mlp()
-        test_demo_data_mlp()
