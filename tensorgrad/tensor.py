@@ -38,7 +38,7 @@ class Tensor:
         if isinstance(data, (int, float)) and len(name) == 0:
             self.name = '%.2f'%data
 
-    # 清空梯度
+    # 清空梯度, 否则梯度会累加
     def zero_grad(self) -> None:
         self.grad = np.zeros_like(self.data)
 

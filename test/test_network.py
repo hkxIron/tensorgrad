@@ -6,7 +6,10 @@ from micrograd.graph_utils import *
 import matplotlib.pyplot as plt
 import torch
 
-
+"""
+先要安装graphviz
+sudo apt-get install graphviz
+"""
 def test_simple_mlp():
     Xb = np.array([[0.2, 0.3],
                    [-0.4, 0.8],
@@ -121,11 +124,12 @@ def test_demo_data_mlp():
         # forward
         total_loss, acc = calculate_loss()
 
-        # backward
+        # backward, 计算梯度
         model.zero_grad()
         total_loss.backward()
 
-        # update (sgd)
+        # update (sgd), 更新模型参数, 类似于pytorch的optimizer.step()
+        # 学习率随着迭代次数增加而减小
         learning_rate = 1.0 - 0.9 * k / 100  # k 越大，lr越小
         for p in model.parameters():
             p.data -= learning_rate * p.grad

@@ -3,10 +3,26 @@ import numpy as np
 
 class Functional:
     class Func:
+
+        """
+        x为输入，y为输出, y=f(x)
+        @param x 输入
+        @return y
+        """
         @staticmethod
         def forward(x: np.ndarray, **kwargs) -> np.ndarray:
             pass
 
+        """
+        x为输入，y为输出
+        y=f(x)
+        y_grad: 反向传播时，loss对y的导数dL/dy
+        返回值为L对x的导数:dL/dx 
+        dL/dx = dL/dy * dy/dx
+        
+        @param x 输入
+        @return dL/dx
+        """
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, **kwargs) -> np.ndarray:
             pass
@@ -22,6 +38,7 @@ class Functional:
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, **kwargs) -> np.ndarray:
             # y = relu(x)
+            # dL/dx = dL/dy * dy/dx
             grad = (x > 0) * y_grad  # <0的地方直接为0
             return grad
 
