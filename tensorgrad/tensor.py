@@ -122,6 +122,7 @@ class Tensor:
         assert self.data.shape[-1] == other.data.shape[0], 'self data last dim should equals other data first dim'
         out = Tensor(self.data @ other.data, _prev_nodes=(self, other), _op='@', name=self.name + "@" + other.name)
 
+        # NOTE:前向时就会把反向函数都计算好,反向时直接发调用
         def _backward_grad():
             # self.grad: [B, D]
             # out.grad:[B, C]
@@ -299,13 +300,14 @@ class Tensor:
 
         return y
 
-    # 选遍历获取所有子节点，然后再计算梯度
+    # NOTE: 选遍历获取所有子节点，然后再计算梯度
     def backward(self, grad=None):
         # topological order all of the children in the graph
         # 后序遍历获取所有子节点（只有最后一个节点需要这样遍历全部一次，其它的节点均不用遍历）
         topo_nodes = []
         visited = set()
 
+        # NOTE:拓扑排序, 找出不依赖于其它节点的节点排在前面，依赖越多的排在后面
         def build_nodes(v):
             # 当前节点没被访问(由于在图中，可能会有相同的子结点，因此需要添加访问标记)
             if v not in visited:
@@ -327,7 +329,7 @@ class Tensor:
             self.grad = np.ones_like(self.data)
         # 从后向前传播梯度
         for v in reversed(topo_nodes):
-            # 每个节点都更新其前驱节点的梯度
+            # NOTE: 从最后一个节点开始遍历，每个节点都更新其前驱节点的梯度
             v._backward_grad_fn()
 
     def __neg__(self):  # -self

@@ -40,8 +40,10 @@ class LinearLayer(Module):
             out2_data = self.act_func.forward(xw_b.data)
             xw_b_act = Tensor(out2_data, _prev_nodes=(xw_b,), name="L"+str(self.layer_index)+'_activate')
 
-            # 如果有激活函数，那么需要显式定义梯度的回传,如果没有激活函数，则依靠xw+b中tensor的自动微分机制即可
+            # NOTE: 如果有激活函数，那么需要显式定义梯度的回传,如果没有激活函数，则依靠xw+b中tensor的自动微分机制即可
+            #      另外，计算xw的梯度时，会利用到输入xw_b，因此需要缓存数据,一般称为缓存激活值
             def _backward_grad():
+                # 梯度累加
                 xw_b.grad += self.act_func.backward(x=xw_b.data, y=out2_data, y_grad=xw_b_act.grad)
             xw_b_act.set_backward_func(_backward_grad)
 
