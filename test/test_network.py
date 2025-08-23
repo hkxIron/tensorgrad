@@ -1,8 +1,12 @@
 import numpy as np
 import sys
+
+from sklearn.decomposition import PCA
+
 sys.path.append("../")
 
 from sklearn.model_selection import train_test_split
+
 from sklearn.preprocessing import StandardScaler
 
 import random
@@ -375,7 +379,7 @@ def test_mlp_softmax_with_cross_entropy_loss():
 
 def test_iris_data_with_mlp_softmax_with_cross_entropy_loss():
     batch_size = 20
-    iter = 1000
+    iter = 2000
 
     class_num = 3
     input_dim = 4
@@ -390,6 +394,18 @@ def test_iris_data_with_mlp_softmax_with_cross_entropy_loss():
     # 标准化输入
     scaler = StandardScaler()  # 对每个特征，减去均值，除以标准差
     X = scaler.fit_transform(X)
+
+    use_pca = True
+    if use_pca: # 使用PCA降维
+        input_dim=2
+        pca = PCA(n_components=input_dim)
+        X = pca.fit_transform(X)
+        # PCA降维
+        print("降维后形状:", X.shape)
+        print("方差解释比例:", pca.explained_variance_ratio_)
+        cumulative_variance = np.cumsum(pca.explained_variance_ratio_)
+        print("累计方差解释比例:", cumulative_variance)
+
     # 划分训练集
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
@@ -405,7 +421,7 @@ def test_iris_data_with_mlp_softmax_with_cross_entropy_loss():
 
     # initialize a model
     model = MLP(n_input=input_dim,
-                out_size_of_each_layer=[16, 16, 8, class_num],
+                out_size_of_each_layer=[16, 16, 16, 8, class_num],
                 activate_func=F.Relu(),
                 bias=True)  # 2-layer neural network
     loss_layer = SoftmaxCrossEntropyWithLogitLossLayer(reduction='mean')
@@ -461,31 +477,29 @@ def test_iris_data_with_mlp_softmax_with_cross_entropy_loss():
                 print(f"step:{k:03d} all data loss:{total_loss.data:.6f}, test accuracy:{accuracy * 100:.1f}%")
 
     print("train done!")
-    # visualize decision boundary
-    # h = 0.25
-    # x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    # y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-    # z_min, z_max = X[:, 2].min() - 1, X[:, 2].max() + 1
-    # t_min, t_max = X[:, 3].min() - 1, X[:, 3].max() + 1
-    # xx, yy, zz, tt = np.meshgrid(np.arange(x_min, x_max, h),
-    #                      np.arange(y_min, y_max, h),
-    #                      np.arange(z_min, z_max, h),
-    #                      np.arange(t_min, t_max, h)
-    #                      )
-    # Xmesh = np.c_[xx.ravel(), yy.ravel(), zz.ravel(), tt.ravel()]
-    #
-    # inputs = Tensor(Xmesh)
-    # scores = F.Sigmoid.forward(model(inputs).data)  # 输出预测的分数
-    # Z = scores.argmax(axis=1)
-    # Z = Z.reshape(xx.shape)
-    #
-    # fig = plt.figure()
-    # # 更好的方式是利用pca/t-snets等降维方法，将数据降维到2维，然后画图
-    # plt.contourf(xx[:,:,0,0], yy[:,:,0,0], Z[:,:,0,0], cmap=plt.cm.Spectral, alpha=0.8)
-    # plt.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=plt.cm.Spectral)
-    # plt.xlim(xx.min(), xx.max())
-    # plt.ylim(yy.min(), yy.max())
-    # plt.show()
+
+    if use_pca:
+        # visualize decision boundary
+        h = 0.25
+        x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+        y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+        xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
+                             np.arange(y_min, y_max, h),
+                             )
+        Xmesh = np.c_[xx.ravel(), yy.ravel()]
+
+        inputs = Tensor(Xmesh)
+        scores = F.Sigmoid.forward(model(inputs).data)  # 输出预测的分数
+        Z = scores.argmax(axis=1)
+        Z = Z.reshape(xx.shape)
+
+        fig = plt.figure()
+        # 更好的方式是利用pca/t-snets等降维方法，将数据降维到2维，然后画图
+        plt.contourf(xx, yy, Z, cmap=plt.cm.Spectral, alpha=0.8)
+        plt.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=plt.cm.CMRmap)
+        plt.xlim(xx.min(), xx.max())
+        plt.ylim(yy.min(), yy.max())
+        plt.show()
 
 def test_mlp_with_mse_loss():
     batch_size = 1

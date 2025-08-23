@@ -1,11 +1,17 @@
 
 # Tensorgrad
 
-A tiny Tensorgrad engine, which is inspired by [micrograd](https://github.com/karpathy/micrograd) of karpathy, the latter is a great work for educational purposes.
-The only difference from micrograd of karpathy is that we support operate on tensor based on numpy.ndarray, which is more similar to PyTorch and much faster than micrograd,  while micrograd is only support scalar value.
+A tiny Tensorgrad engine, which is inspired by [micrograd](https://github.com/karpathy/micrograd) from karpathy, the latter is a great work for educational purposes.
+However, micrograd only support scalar value, which is slow and inefficient for deep learning.
+So I decided to implement Tensorgrad engine based on numpy.ndarray, which is a PyTorch-like framework and much faster than micrograd.
 
-Implements backpropagation over a dynamically built DAG and a small neural networks library on top of it  
-with a PyTorch-like API.
+Tensorgard new features:
+ - Tensor based on numpy.ndarray
+ - Common Functions like softmax, sigmoid, relu, tanh, identity etc.
+ - Common Loss Functions like softmax cross entropy, mean square loss, binary cross entropy loss etc
+ - Some test cases for Tensorgrad
+
+Implements backpropagation over a dynamically built DAG and a small neural networks library on top of it with a PyTorch-like API.
 
 
 ### Example usage

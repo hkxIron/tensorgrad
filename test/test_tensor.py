@@ -493,9 +493,9 @@ def test_log():
 
 
 if __name__ == "__main__":
+    test_softmax()
     test_logsoftmax()
     if False:
-        test_softmax()
         test_draw_dot()
         test_more_ops()
         test_log()

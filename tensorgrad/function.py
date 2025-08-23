@@ -73,7 +73,7 @@ class Functional:
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, **kwargs) -> np.ndarray:
             # x_out=Sigmoid(x)
-            # sigmoid(x)的导数为：sigmoid(x)(1-sigmoid(x))
+            # NOTE: sigmoid(x)的导数为：sigmoid(x)(1-sigmoid(x))
             # x.grad += (x_out.data*(1-x_out.data)) * x_out.grad
             return y * (1 - y) * y_grad
 
@@ -103,25 +103,39 @@ class Functional:
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, batch_axis=0, **kwargs) -> np.ndarray:
             """
-             对于一个样本，假设x维度为3,则预测的类别数也为3, 则x=[x1,x2,x3], y=[y1,y2, y3]
+            对于一个样本，假设x维度为3,则预测的类别数也为3, 则x=[x1,x2,x3], y=[y1,y2, y3]
              [y1,y2,y3] = softmax([x1,x2,x3])
 
             即
              x1-> exp(x1) -> y1=exp(x1)/sum(exp(xj))
              x2-> exp(x2) -> y2=exp(x2)/sum(exp(xj))
              x3-> exp(x3) -> y3=exp(x3)/sum(exp(xj))
+             =>
+             xi-> exp(xi) -> yi=exp(xi)/sum(exp(xj))
 
-            根据公式有：
+            下面分2种情况讨论
+            1. i=j时:
+             dyi/dxi = exp(xi)/sum(exp(xk)) + exp(xi)*(-1)*sum(exp(xk))^(-2)*exp(xi)
+             化间后有
+             = yi - yi*yi
+
+            2. i!=j时：
+            dyi/dxj = exp(xi) * (-1)* sum(exp(xk))^(-2)*exp(xj)
+            = -yi*yj
+
+            因此可以归纳出以下求导公式：
             y = softmax(x)
             yi = exp(xi)/sum(exp(xk))
             if i=j:
-              dy_i/dx_j = y_i*(1-y_j) = y*i*(1-y_i) = yi-yi*yi
+              dyi/dxj = y_i*(1-yj) = y*i*(1-yi) = yi-yi*yi
             else:
-              dy_i/dx_j = -y_i*y_j
+              dyi/dxj = -yi*yj
 
             =>
             而下一个节点的梯度已知，为:
             dL/dy = [dL/dy1, dL/dy2, dL/dy3], 即为代码中的y_grad
+
+            举例
 
             同时由前向传播可知
             x1-> exp(x1) -> y1=exp(x1)/sum(exp(xj)) -> loss
@@ -129,23 +143,33 @@ class Functional:
             x3-> exp(x3) -> y3=exp(x3)/sum(exp(xj)) -> loss
 
             即x1可通过y1,y2,y3影响最终loss L:
-            x1->y1 -> L
-            x1->y2 -> L
-            x1->y3 -> L
+            x1->y1 -> Loss
+            x1->y2 -> Loss
+            x1->y3 -> Loss
+            即x1对L的影响路径为, 因此里面必然包含相加：
+            x1 -> [y1, y2, y3 ] -> Loss
 
-            因此:
+            因此, 将Loss简写为L:
             dL/dx = [dL/dx1, dL/dx2, dL/dx3]
 
             其中L对dxi的梯度为:
             dL/dxi = sum{k}{ dL/dyk*(dyk/dxi) }
             = dL/dy1*dy1/dxi + dL/dy2*dy2/dxi + dL/dy3*dy3/dxi
+            = [dy1/dxi dy2/dxi dy3/dxi]* [dL/dy1
+                                          dL/dy2
+                                          dL/dy3]
             = [dy1/dxi dy2/dxi dy3/dxi]* [dL/dy1 dL/dy2 dL/dy3].T
             = dy/dx * (dL/dy).T
             = softmax_grad * y_grad.T
 
+            其中
             dL/dy = [dL/dy1 dL/dy2 dL/dy3]
 
-            dy/dx= softmax_grad梯度矩阵为:
+            NOTE: 结论：
+                dY/dX = diag(Y) - Y @ Y.T
+
+            推导 :
+            dY/dx= softmax_grad梯度矩阵为, shape:[N*N]:
             [dyi/dxj] = [
                 [dyi/dx1],
                 [dyi/dx2],
@@ -171,10 +195,11 @@ class Functional:
                     y2
                         y3
             ] - [
-                y1*y1 y1*y2 y1*y3
+                y1*y1 y1*y2 y1*y3 # 向量外积
                 y2*y1 y2*y2 y2*y3
                 y3*y1 y3*y2 y3*y3
             ]
+            = diag(Y) - Y @ Y.T
 
             注意：
             softmax矩阵为对称矩阵,每行与每列之和为0，对于其中的某一行或者某一列的物理意义是:
@@ -189,28 +214,30 @@ class Functional:
             对应到python代码中，
             x, shape[N,C]
             y, shape:[N, C]
-            i为batch中第i个样本
+            b为batch中第b个样本
 
-            diag[yi] = np.diag(y[i]) =
+            diag[yb] = np.diag(y[b]) =
             [
                 y1
                     y2
                         y3
             ]
 
-            [ yi*yj ] = np.outer(y[i], y[i])  =
+            [ yb@yb.T ] = np.outer(yb, yb)  =
             [
                 y1*y1 y1*y2 y1*y3
                 y2*y1 y2*y2 y2*y3
                 y3*y1 y3*y2 y3*y3
             ]
+
             因此:
-            dy/dx = softmax_grad = np.diag(y[i]) - np.outer(y[i], y[i])
+            dY/dX = softmax_grad = np.diag(Yb) - np.outer(Yb, Yb)
             = [
                 y1-y1*y1 -y1*y2   -y1*y3
                 -y2*y1   y2-y2*y2 -y2*y3
                 -y3*y1   -y3*y2   y3-y2*y3
              ]
+
             """
             batch_size = y.shape[batch_axis]
             # 对于batch中的每个样本进行处理
@@ -227,6 +254,7 @@ class Functional:
                 x_grad = softmax_grad @ y_grad[i].T
                 batch_grads.append(x_grad)
             # batch_grads:[N,C]
+            # NOTE: batch中有多个样本，也会计算多个loss, 所有loss最后拼接在一起
             batch_grads = np.array(batch_grads, dtype=x.dtype)
             return batch_grads
 
