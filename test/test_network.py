@@ -1,6 +1,12 @@
 import numpy as np
+import sys
+sys.path.append("../")
+
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
 import random
-from sklearn.datasets import make_moons, make_blobs, make_multilabel_classification
+from sklearn.datasets import make_moons, make_blobs, make_multilabel_classification, load_iris
 from tensorgrad.network import *
 from micrograd.graph_utils import *
 import matplotlib.pyplot as plt
@@ -309,7 +315,7 @@ def test_mlp_softmax_with_cross_entropy_loss():
             model_out = model(x_tensor)
             data_loss, pred = loss_layer(model_out, y_tensor)
 
-            # reg loss
+            # L2 - reg loss
             reg_loss = 1e-4
             for p in model.parameters():
                 reg_loss += (p * p).sum()
@@ -348,6 +354,7 @@ def test_mlp_softmax_with_cross_entropy_loss():
     print("train done!")
     # visualize decision boundary
     h = 0.25
+    # x 轴与y轴, 只有样本维度为2时才可以
     x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
     y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h),
@@ -365,6 +372,120 @@ def test_mlp_softmax_with_cross_entropy_loss():
     plt.xlim(xx.min(), xx.max())
     plt.ylim(yy.min(), yy.max())
     plt.show()
+
+def test_iris_data_with_mlp_softmax_with_cross_entropy_loss():
+    batch_size = 20
+    iter = 1000
+
+    class_num = 3
+    input_dim = 4
+
+    np.random.seed(1337)
+    random.seed(1337)
+
+    iris = load_iris()
+    X = iris.data
+    y = iris.target
+
+    # 标准化输入
+    scaler = StandardScaler()  # 对每个特征，减去均值，除以标准差
+    X = scaler.fit_transform(X)
+    # 划分训练集
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+    N = X_train.shape[0]
+    print("X:", X.shape, X[:5,:])
+    print("y:", y.shape, y[:5])
+    # Y in {0,1}
+
+    # visualize in 2D
+    #plt.figure(figsize=(5, 5))
+    #plt.scatter(X[:, 0], X[:, 1], c=Y, s=20, cmap='jet')
+    #plt.show(); return
+
+    # initialize a model
+    model = MLP(n_input=input_dim,
+                out_size_of_each_layer=[16, 16, 8, class_num],
+                activate_func=F.Relu(),
+                bias=True)  # 2-layer neural network
+    loss_layer = SoftmaxCrossEntropyWithLogitLossLayer(reduction='mean')
+
+    print(model)
+    print("number of parameters:", len(model.parameters()))
+    print("total parameters:", model.calculate_total_param_num())
+
+    alpha = 1e-4
+    # optimization
+    for k in range(iter):
+        ri = np.random.permutation(N)[:batch_size]  # 随便取一个排列，取前batch_size个元素
+        Xb, Yb = Tensor(X_train[ri], name='x'), Tensor(y_train[ri], name='y')
+
+        def get_loss_pred(x_tensor, y_tensor):
+            # data loss
+            model_out = model(x_tensor)
+            data_loss, pred = loss_layer(model_out, y_tensor)
+
+            # L2 - reg loss
+            reg_loss = 1e-4
+            for p in model.parameters():
+                reg_loss += (p * p).sum()
+
+            total_loss = data_loss.mean() + reg_loss * alpha
+            return total_loss, pred
+
+        total_loss, pred = get_loss_pred(Xb, Yb)
+        # backward
+        model.zero_grad()
+        total_loss.backward()
+
+        if k==0:
+            # 打印tensor依赖图
+            print("draw tensor依赖图")
+            L_dot = draw_dot_tensor(total_loss, show_data=True)
+            #L_dot.view()
+
+        # update (sgd)
+        #learning_rate = 1.0 - 0.9 * k / iter  # k 越大，lr越小
+        learning_rate = 1E-4
+        for p in model.parameters():
+            p.data -= learning_rate * p.grad
+
+        hint = True
+        if hint:
+            if k % 100 == 0:
+                total_loss, test_pred = get_loss_pred(Tensor(X_test), Tensor(y_test))
+                # also get all accuracy
+                label_index = np.argmax(test_pred.numpy(), axis=1).flatten()
+                # print("score:", score, " y:",Yb.data)
+                accuracy = np.mean(label_index == y_test)
+                print(f"step:{k:03d} all data loss:{total_loss.data:.6f}, test accuracy:{accuracy * 100:.1f}%")
+
+    print("train done!")
+    # visualize decision boundary
+    # h = 0.25
+    # x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
+    # y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
+    # z_min, z_max = X[:, 2].min() - 1, X[:, 2].max() + 1
+    # t_min, t_max = X[:, 3].min() - 1, X[:, 3].max() + 1
+    # xx, yy, zz, tt = np.meshgrid(np.arange(x_min, x_max, h),
+    #                      np.arange(y_min, y_max, h),
+    #                      np.arange(z_min, z_max, h),
+    #                      np.arange(t_min, t_max, h)
+    #                      )
+    # Xmesh = np.c_[xx.ravel(), yy.ravel(), zz.ravel(), tt.ravel()]
+    #
+    # inputs = Tensor(Xmesh)
+    # scores = F.Sigmoid.forward(model(inputs).data)  # 输出预测的分数
+    # Z = scores.argmax(axis=1)
+    # Z = Z.reshape(xx.shape)
+    #
+    # fig = plt.figure()
+    # # 更好的方式是利用pca/t-snets等降维方法，将数据降维到2维，然后画图
+    # plt.contourf(xx[:,:,0,0], yy[:,:,0,0], Z[:,:,0,0], cmap=plt.cm.Spectral, alpha=0.8)
+    # plt.scatter(X[:, 0], X[:, 1], c=y, s=40, cmap=plt.cm.Spectral)
+    # plt.xlim(xx.min(), xx.max())
+    # plt.ylim(yy.min(), yy.max())
+    # plt.show()
 
 def test_mlp_with_mse_loss():
     batch_size = 1
@@ -475,10 +596,11 @@ def test_mlp_with_mse_loss():
 
 
 if __name__ == "__main__":
-    test_demo_data_mlp()
+    test_iris_data_with_mlp_softmax_with_cross_entropy_loss()
 
     if False:
-        test_mlp_sigmoid_with_cross_entropy_loss()
         test_mlp_softmax_with_cross_entropy_loss()
+        test_demo_data_mlp()
+        test_mlp_sigmoid_with_cross_entropy_loss()
         test_mlp_with_mse_loss()
         test_simple_mlp()

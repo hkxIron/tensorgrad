@@ -99,6 +99,6 @@ def test_sigmoid_loss_layer():
 
 if __name__ == "__main__":
    if True:
-       #test_sigmoid_loss()
+       test_sigmoid_loss()
        test_sigmoid_loss_layer()
-       #test_cross_entropy_loss()
+       test_cross_entropy_loss()

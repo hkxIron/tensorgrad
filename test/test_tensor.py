@@ -156,9 +156,9 @@ def test_more_ops():
     # torch
     a = torch.from_numpy(a.data).float()
     b = torch.from_numpy(b.data).float()
-    a.requires_grad = True;
+    a.requires_grad = True
     a.retain_grad()
-    b.requires_grad = True;
+    b.requires_grad = True
     b.retain_grad()
 
     c = a + b

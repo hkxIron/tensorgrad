@@ -16,7 +16,7 @@ class Functional:
         """
         x为输入，y为输出
         y=f(x)
-        y_grad: 反向传播时，loss对y的导数dL/dy
+        y_grad: 反向传播时，loss对输出y的导数dL/dy
         返回值为L对x的导数:dL/dx 
         dL/dx = dL/dy * dy/dx
         
@@ -38,6 +38,9 @@ class Functional:
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, **kwargs) -> np.ndarray:
             # y = relu(x)
+            # relu(x)导数为：
+            # x>=0: dl/dx=1
+            # x<0: dL/dx0
             # dL/dx = dL/dy * dy/dx
             grad = (x > 0) * y_grad  # <0的地方直接为0
             return grad
@@ -50,27 +53,27 @@ class Functional:
             """
             y = 1/(1+exp(-x))
 
+            caffe中的数值稳定性优优化方法
+
             if x>0
                 exp(-x)接近于0, 因此计算是稳定的，不会产生上溢
                 等价于：1/(1+exp(-abs(x)))
             else if x<0
                 1/(1+exp(-x)) = 1- 1/(1+exp(x)) = 1- 1/(1+exp(-abs(x)))
-                其中exp(x)接近于0，因此计算也是稳定的
-            因此需要计算: 1/(1+exp(-abs(x)))
+                其中 exp(-abs(x)) 接近于0，因此计算也是稳定的
 
-            :param x:
-            :param kwargs:
-            :return:
+            因此需要计算: abs_sigmoid = 1/(1+exp(-abs(x)))
             """
             # origin: 1/(1+exp(-x))
             # numberic stable version
             is_pos = x>0
-            a = 1 / (1 + np.exp(-np.abs(x)))
-            return is_pos*a + (~is_pos)*(1 - a)
+            abs_sigmoid = 1 / (1 + np.exp(-np.abs(x)))
+            return is_pos*abs_sigmoid + (~is_pos)*(1 - abs_sigmoid)
 
         @staticmethod
         def backward(x: np.ndarray, y: np.ndarray, y_grad: np.ndarray, **kwargs) -> np.ndarray:
             # x_out=Sigmoid(x)
+            # sigmoid(x)的导数为：sigmoid(x)(1-sigmoid(x))
             # x.grad += (x_out.data*(1-x_out.data)) * x_out.grad
             return y * (1 - y) * y_grad
 
@@ -85,7 +88,7 @@ class Functional:
     #   dy_i/dx_j = -y_i*y_j
     class Softmax(Func):
         @staticmethod
-        def forward(x: np.ndarray, axis=1, **kwargs) -> np.ndarray:
+        def forward(x: np.ndarray, axis=-1, **kwargs) -> np.ndarray:
             # axis: which axis to calculate softmax
             keepdims = True
             x_max = x.max(axis=axis, keepdims=keepdims)
@@ -227,7 +230,7 @@ class Functional:
             batch_grads = np.array(batch_grads, dtype=x.dtype)
             return batch_grads
 
-    # 可以提高数值稳定性
+    # log_softmax可以提高数值稳定性, 因为exp(x)可能会上溢
     # p = log_softmax(x)
     # pi = log(exp(xi)/sum(exp(xj)))
     #
