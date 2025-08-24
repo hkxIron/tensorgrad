@@ -13,7 +13,7 @@ class Module:
     def parameters(self)->List[Tensor]:
         return []
 
-class LinearLayer(Module):
+class Linear(Module):
     def __init__(self, n_input:int,
                  n_output:int,
                  bias=False,
@@ -63,11 +63,11 @@ class MLP(Module):
                  bias=False,
                  activate_func:F.Func=None):
         size_list = [n_input] + out_size_of_each_layer
-        self.layers = [LinearLayer(n_input=size_list[layer_index],
-                                   n_output=size_list[layer_index + 1],
-                                   bias=bias,
-                                   layer_index=layer_index,
-                                   activate_func = activate_func if layer_index != len(out_size_of_each_layer) - 1 else None)  # 即最后一层没有激活函数
+        self.layers = [Linear(n_input=size_list[layer_index],
+                              n_output=size_list[layer_index + 1],
+                              bias=bias,
+                              layer_index=layer_index,
+                              activate_func = activate_func if layer_index != len(out_size_of_each_layer) - 1 else None)  # 即最后一层没有激活函数
                        for layer_index in range(len(out_size_of_each_layer))]
 
     def __call__(self, x:Tensor)->Tensor:
@@ -102,14 +102,14 @@ class SigmoidCrossEntropyWithLogitLossLayer(Module):
         loss_tensor = Tensor(data=loss, _prev_nodes=(x, y), name='SigmoidCrossEntropyWithLogitLoss')
 
         def _backward_grad():
-            x.grad += self.func.backward(y_pred=y_pred, y=y.data) * loss_tensor.grad
+            x.grad += self.func.backward(y_pred=y_pred, label=y.data) * loss_tensor.grad
 
         loss_tensor.set_backward_func(_backward_grad)
         y_pred_tensor = Tensor(y_pred, name='pred', _prev_nodes=(x,))
         return loss_tensor, y_pred_tensor
 
 class SoftmaxCrossEntropyWithLogitLossLayer(Module):
-    def __init__(self, reduction='sum', axis=1):
+    def __init__(self, reduction='sum', axis=-1):
         """
         axis:which axis to calculate softmax probility
         """
@@ -120,7 +120,7 @@ class SoftmaxCrossEntropyWithLogitLossLayer(Module):
     # sum_k{y_k*log(p_k)}
     def __call__(self, x: Tensor, y: Tensor) -> (Tensor,Tensor):
         # y in {0, 1}
-        loss = self.func.forward(x=x.data, y=y.data, axis=self.axis)
+        loss = self.func.forward(x=x.data, label=y.data)
         if self.reduction == 'sum':
             loss = np.sum(loss)
         elif self.reduction == 'mean':
@@ -130,7 +130,7 @@ class SoftmaxCrossEntropyWithLogitLossLayer(Module):
         y_pred = F.Softmax().forward(x.data, axis=self.axis)
         def _backward_grad():
             # y没有loss
-            x.grad += self.func.backward(y_pred=y_pred, y_label_index=y.data) * loss_tensor.grad
+            x.grad += self.func.backward(y_pred=y_pred, label=y.data) * loss_tensor.grad
 
         loss_tensor.set_backward_func(_backward_grad)
         y_pred_tensor = Tensor(y_pred, name='pred', _prev_nodes=(x,))

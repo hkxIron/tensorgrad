@@ -9,6 +9,7 @@ Tensorgard new features:
  - Tensor based on numpy.ndarray
  - Common Functions like softmax, sigmoid, relu, tanh, identity etc.
  - Common Loss Functions like softmax cross entropy, mean square loss, binary cross entropy loss etc
+ - For numerical stability, use some algorithms trick borrowed from tensorflow, caffe etc to avoid overflow/underflow
  - Some test cases for Tensorgrad
 
 Implements backpropagation over a dynamically built DAG and a small neural networks library on top of it with a PyTorch-like API.
