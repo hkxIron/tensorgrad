@@ -1,5 +1,5 @@
 from typing import List
-from tensorgrad.tensor import *
+from src.tensor import *
 import numpy as np
 
 # 基类

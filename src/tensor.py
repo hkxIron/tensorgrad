@@ -1,6 +1,6 @@
 from typing import Union
-from tensorgrad.util import *
-from tensorgrad.function import Functional as F
+from src.util import *
+from src.function import Functional as F
 
 import numpy as np
 

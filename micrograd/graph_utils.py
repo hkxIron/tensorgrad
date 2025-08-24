@@ -2,7 +2,7 @@
 import numpy as np
 from graphviz import Digraph
 from micrograd.engine import Value
-from tensorgrad.tensor import Tensor
+from src.tensor import Tensor
 
 def trace(root:Value):
     nodes, edges = set(), set()

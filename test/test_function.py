@@ -1,10 +1,10 @@
 import numpy as np
 import random
 
-from tensorgrad.network import *
+from src.network import *
 from micrograd.graph_utils import draw_dot_tensor
 from micrograd.graph_utils import *
-from tensorgrad.function import Functional as F
+from src.function import Functional as F
 import matplotlib.pyplot as plt
 import torch
 import os

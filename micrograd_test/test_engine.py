@@ -3,7 +3,7 @@ import os
 import numpy as np
 import random
 from micrograd import nn
-from tensorgrad.function import Functional as F
+from src.function import Functional as F
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 

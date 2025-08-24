@@ -11,7 +11,7 @@ from sklearn.preprocessing import StandardScaler
 
 import random
 from sklearn.datasets import make_moons, make_blobs, make_multilabel_classification, load_iris
-from tensorgrad.network import *
+from src.network import *
 from micrograd.graph_utils import *
 import matplotlib.pyplot as plt
 import torch
